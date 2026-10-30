@@ -1,0 +1,3 @@
+import type {WebPage} from './content-model';
+import TaxCalculator from './tax-calculator';
+export default function PageView({page,brand}:{page:WebPage;brand:string}){return <main className="custom-page"><header><a href="/">🩵 {brand}</a><a href="/">← หน้าแรก</a></header><article><p className="eyebrow">ความรู้เพื่อทุกความอุ่นใจ 🌷</p><h1>{page.title}</h1><p className="page-description">{page.description}</p><div className="page-body">{page.body}</div>{page.kind==='tax'&&<TaxCalculator/>}{page.buttonUrl&&<a className="btn" href={page.buttonUrl}>{page.buttonLabel||'ดูเพิ่มเติม'}</a>}</article><footer>🩵 {brand}</footer></main>}
