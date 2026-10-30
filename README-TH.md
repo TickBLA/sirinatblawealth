@@ -1,0 +1,91 @@
+# ประกันชีวิตอุ่นใจ by ติ๊ก — สำหรับ Vercel
+
+แพ็กเกจ Next.js พร้อมหน้าแรกธีมการ์ตูน และ `/admin` สำหรับแก้ข้อความ เพิ่มลิงก์ เพิ่ม/ซ่อน/ลบ/จัดลำดับส่วนต่าง ๆ ข้อมูลที่บันทึกใช้ฐานข้อมูล Neon PostgreSQL และคงอยู่เมื่อ deploy ใหม่
+
+**ไฟล์นี้เป็นซอร์สโปรเจกต์ ไม่ใช่ HTML ไฟล์เดียว และไม่สามารถอัปโหลด ZIP ทั้งก้อนไปหน้า Import ของ Vercel ได้โดยตรง ต้องแตก ZIP ก่อน**
+
+## วิธีนำขึ้น Vercel ผ่าน GitHub
+
+1. แตกไฟล์ ZIP แล้วเปิดโฟลเดอร์ `tick-vercel` จะพบ `package.json` ที่ระดับแรก
+2. สร้าง repository ใน GitHub แล้วอัปโหลดไฟล์ภายในโฟลเดอร์นี้ รวมไฟล์ `package-lock.json` และโฟลเดอร์ app, public, scripts อย่าอัปโหลด node_modules หรือไฟล์รหัสผ่าน
+3. เข้า Vercel → Add New → Project → Import repository เลือก Framework Preset **Next.js** และ Root Directory ที่มี `package.json`
+4. สร้างฐานข้อมูล **Neon PostgreSQL** ผ่าน Vercel Marketplace/Storage หรือ Neon Console แล้วคัดลอก connection string
+5. เปิด **SQL Editor** ของ Neon นำเนื้อหาทั้งหมดจาก `scripts/schema.sql` ไปวางแล้ว Run เพียงครั้งแรก ไม่ต้องใส่ข้อมูลเริ่มต้นเอง
+6. ที่ Vercel → Project → Settings → Environment Variables ใส่:
+
+| Name | Value |
+| --- | --- |
+| DATABASE_URL | connection string ของ Neon เช่น postgresql://… |
+| ADMIN_PASSWORD | รหัสผ่าน admin ที่ติ๊กกำหนดไว้ในแชต |
+| SITE_URL | ไม่จำเป็น หากใช้ให้ใส่ https://โดเมนจริง โดยไม่มี / ต่อท้าย |
+
+เลือก Production สำหรับเว็บจริง หากใช้ Preview ให้ใช้ฐานข้อมูลทดสอบแยกต่างหาก
+อย่าใช้ชื่อ `NEXT_PUBLIC_ADMIN_PASSWORD` หรือ `NEXT_PUBLIC_DATABASE_URL` เพราะข้อมูลเหล่านี้ต้องอยู่ฝั่งเซิร์ฟเวอร์เท่านั้น
+
+7. กด Deploy (หากเพิ่มหรือแก้ Environment Variables หลัง deploy แล้ว ให้กด Redeploy)
+8. เปิดโดเมนที่ Vercel ให้ → `/admin` → ชื่อผู้ใช้ **admin** และรหัสผ่านที่ตั้งไว้
+9. ทดลองเพิ่มลิงก์ → บันทึกหน้าเว็บ → เปิดหน้าแรกอีกหน้าต่างหนึ่งเพื่อตรวจผล
+
+**ก่อนต่อฐานข้อมูล หน้าแรกยังแสดงข้อมูลเริ่มต้นได้ แต่หลังบ้านจะยังบันทึกไม่ได้**
+
+## วิธีผ่านคอมพิวเตอร์และ Vercel CLI
+
+ติดตั้ง Node.js 22 LTS หรือใหม่กว่า แล้วเปิด Terminal ในโฟลเดอร์โปรเจกต์:
+
+```bash
+npm ci
+npm run build
+npx vercel
+```
+
+ทำตามขั้นตอนเชื่อมโปรเจกต์ จากนั้นตั้ง Environment Variables และฐานข้อมูลตามด้านบน เมื่อพร้อม deploy จริง:
+
+```bash
+npx vercel --prod
+```
+
+## ทดลองบนเครื่อง
+
+คัดลอก `.env.example` เป็น `.env.local` แล้วกรอก DATABASE_URL และ ADMIN_PASSWORD
+
+```bash
+npm ci
+npm run db:setup
+npm run dev
+```
+
+เปิด http://localhost:3000 และ http://localhost:3000/admin
+
+## การแก้ไขหน้าเว็บ
+
+- ข้อมูลหลักและการติดต่อ: ชื่อเว็บ คำโปรย ข้อความหน้าแรก เบอร์โทร LINE Instagram และข้อมูลตัวแทน
+- เพิ่มส่วนใหม่: เลือก การ์ดข้อมูล / ข้อความ / ลิงก์ / คำถาม–คำตอบ
+- เพิ่มลิงก์: เลือกส่วนลิงก์ → เพิ่มลิงก์ → กรอกชื่อรายการ ข้อความปุ่ม และ URL → บันทึกหน้าเว็บ
+- ใช้ลูกศรเลื่อนลำดับ และช่อง “แสดงส่วนนี้บนหน้าแรก” เพื่อซ่อน/แสดง
+- “ดูตัวอย่าง” แสดงฉบับแก้ไข ส่วน “บันทึกหน้าเว็บ” จะอัปเดตข้อมูลจริง
+- การแก้ไขที่ยังไม่บันทึกจะหายเมื่อปิดหน้า ส่วนที่บันทึกแล้วอยู่ในฐานข้อมูล
+
+## รหัสผ่านและการเข้าถึง
+
+ไม่ได้ใส่รหัสผ่านจริงหรือกุญแจฐานข้อมูลไว้ใน ZIP ให้ตั้งค่าใน Vercel เท่านั้น
+ชื่อผู้ใช้คือ `admin` หากต้องการเก็บแบบแฮช ให้รัน `npm run password:hash` แล้วนำผลไปใส่ `ADMIN_PASSWORD_HASH` แทน ADMIN_PASSWORD
+เมื่อเปลี่ยนรหัสผ่าน ให้ล้างเซสชันเดิมผ่าน Neon SQL Editor ด้วย `DELETE FROM sessions;` แล้ว Redeploy
+
+เวอร์ชัน Vercel ไม่ใช้หน้าลงชื่อเข้าใช้ ChatGPT ของ Sites หน้าแรกดูได้ตามการตั้งค่า Deployment Protection ของ Vercel ส่วนการบันทึกหลังบ้านยังต้องล็อกอิน admin
+
+## ขอบเขตการย้าย
+
+แพ็กเกจนี้มีดีไซน์และเนื้อหาเริ่มต้นจากเวอร์ชันที่พัฒนาล่าสุด ไม่ได้ย้ายฐานข้อมูล D1 หรือเซสชันของเว็บไซต์บน ChatGPT ไปด้วย หากมีเนื้อหาที่แก้ผ่านหลังบ้านภายหลัง ให้คัดลอกมาเพิ่มในระบบใหม่
+เว็บไซต์เดิมไม่ได้ถูกแก้ไขหรือปิดใช้งานจากการสร้างไฟล์นี้
+
+## ตรวจสอบ
+
+- `npm run typecheck`
+- `npm run build`
+- หลังเชื่อม Neon แล้ว: ทดสอบ login → เพิ่มลิงก์ → บันทึก → เปิดหน้าแรก → logout
+- หากขึ้น 500 หลังตั้ง DATABASE_URL ให้ตรวจว่า Run scripts/schema.sql แล้ว และ connection string ถูกต้อง
+
+เอกสารอ้างอิง:
+- https://nextjs.org/learn/dashboard-app/setting-up-your-database
+- https://vercel.com/docs/environment-variables
+- https://neon.com/docs/serverless/serverless-driver
