@@ -1,0 +1,12 @@
+import {database} from './database';
+import {timingSafeEqual,createHash} from 'node:crypto';
+import { defaults } from './content-model';
+export const db=database;
+export function json(data:unknown,status=200,extra:Record<string,string>={}){return Response.json(data,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...extra}})}
+export async function sha(value:string){return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value)))).map(b=>b.toString(16).padStart(2,'0')).join('')}
+export const token=()=>Array.from(crypto.getRandomValues(new Uint8Array(32))).map(b=>b.toString(16).padStart(2,'0')).join('');
+export async function authenticated(req:Request){const t=req.headers.get('cookie')?.match(/(?:^|;\s*)tick_session=([a-f0-9]{64})(?:;|$)/)?.[1];if(!t)return false;return !!(await db().prepare('SELECT hash FROM sessions WHERE hash=? AND expires>?').bind(await sha(t),Date.now()).first())}
+export function originOK(req:Request){const o=req.headers.get('origin');if(!o)return false;return o===new URL(req.url).origin||(!!process.env.SITE_URL&&o===new URL(process.env.SITE_URL).origin)}
+export function cookie(value:string,req:Request,age=28800){return `tick_session=${value}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${age}${new URL(req.url).protocol==='https:'?'; Secure':''}`}
+export async function getContent(){if(!process.env.DATABASE_URL)return {content:defaults,revision:0};const row=await db().prepare("SELECT data, revision FROM content WHERE id='main'").first<{data:string;revision:number}>();return row?{content:JSON.parse(row.data),revision:row.revision}:{content:defaults,revision:0}}
+export async function verifyPassword(p:string){const stored=process.env.ADMIN_PASSWORD_HASH;if(!stored){const expected=process.env.ADMIN_PASSWORD;if(!expected)return false;return timingSafeEqual(createHash('sha256').update(p).digest(),createHash('sha256').update(expected).digest());}const [salt,expected]=stored.split(':');if(!salt||!expected)return false;const k=await crypto.subtle.importKey('raw',new TextEncoder().encode(p),'PBKDF2',false,['deriveBits']);const result=await crypto.subtle.deriveBits({name:'PBKDF2',salt:new TextEncoder().encode(salt),iterations:100000,hash:'SHA-256'},k,256);const actual=Array.from(new Uint8Array(result)).map(b=>b.toString(16).padStart(2,'0')).join('');let diff=actual.length^expected.length;for(let i=0;i<actual.length;i++)diff|=actual.charCodeAt(i)^expected.charCodeAt(i);return diff===0;}
